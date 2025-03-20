@@ -19,17 +19,17 @@ qt5_wrap_cpp(GENERATED_SOURCES ${MOCS})
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(graspit_interface ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(graspit_script ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_library(graspit_interface SHARED
+add_library(graspit_script SHARED
     src/graspit_interface.cpp
     src/main.cpp
     ${GENERATED_SOURCES}
     ${MOCS})
 
 
-target_include_directories(graspit_interface
+target_include_directories(graspit_script
   PRIVATE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   ${GRASPIT_INCLUDE_DIRS}
@@ -38,16 +38,18 @@ target_include_directories(graspit_interface
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(graspit_interface ${${PROJECT_NAME}_EXPORTED_TARGETS} ${QT_DEFINITIONS})
-# add_dependencies(graspit_interface ${PROJECT_NAME}_gencpp)
+# add_dependencies(graspit_script ${${PROJECT_NAME}_EXPORTED_TARGETS} ${QT_DEFINITIONS})
+# add_dependencies(graspit_script ${PROJECT_NAME}_gencpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(graspit_interface
+target_link_libraries(graspit_script
   # graspit
   ${QT_LIBRARIES}
   Qt5::Core Qt5::Widgets
 )
 
-install(TARGETS graspit_interface
+set_target_properties(graspit_script PROPERTIES PREFIX "")
+
+install(TARGETS graspit_script
   LIBRARY DESTINATION lib/plugins
 )

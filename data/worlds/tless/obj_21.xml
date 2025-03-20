@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<world>
+	<graspableBody>
+		<filename>models/objects/tless/obj_21.xml</filename>
+		<transform>
+			<fullTransform>(+1 +0 +0 +0)[+0 +0 +1000]</fullTransform>
+		</transform>
+	</graspableBody>
+	<robot>
+		<filename>models/robots/pr2_gripper/pr2_gripper.xml</filename>
+		<dofValues>0 </dofValues>
+		<transform>
+			<fullTransform>(+1 +0 +0 +0)[+0 +0 +0]</fullTransform>
+		</transform>
+	</robot>
+	<camera>
+		<position>0 0 403.255</position>
+		<orientation>0 0 0 1</orientation>
+		<focalDistance>407.255</focalDistance>
+	</camera>
+</world>
