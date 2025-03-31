@@ -16,6 +16,10 @@ struct EGPlannerRequest {
   SearchContactType search_contact = CONTACT_PRESET;
   int max_steps = 35000;
   int max_num_results = 50;
+  std::string output_file = "graspit_script_output.csv";
+  bool verbose = false;
+
+  void fromConfigFile(std::string filename);
 };
 
 class GraspitInterface : public QObject,
@@ -32,6 +36,7 @@ private:
   bool firstTimeInMainLoop;
 
   void graspPlanningStateToCout(const GraspPlanningState *gps, Hand *mHand, GraspableBody *mObject);
+  void graspPlanningStateToCsv(const GraspPlanningState *gps, Hand *mHand, GraspableBody *mObject, std::ostream& out);
 
 public:
   GraspitInterface() {}

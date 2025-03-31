@@ -5,6 +5,8 @@
 #include <graspit/robot.h>
 #include <graspit/world.h>
 #include <string>
+#include <fstream>
+#include <QSettings>
 
 #include <graspit/EGPlanner/egPlanner.h>
 #include <graspit/EGPlanner/energy/searchEnergy.h>
@@ -22,12 +24,25 @@
 
 namespace GraspitInterface {
 
+void EGPlannerRequest::fromConfigFile(std::string filename) {
+  QSettings settings(QString::fromStdString(filename), QSettings::IniFormat);
+  if (settings.contains("output_file")) {
+    output_file = settings.value("output_file").toString().toStdString();
+    std::cout << "Will write to file: " << output_file << std::endl;
+  }
+  max_steps = settings.value("max_steps", max_steps).toInt();
+  max_num_results = settings.value("max_num_results", max_num_results).toInt();
+  verbose = settings.value("verbose", verbose).toBool();
+}
+
 int GraspitInterface::init(int argc, char **argv) {
   cmdline::parser *parser = new cmdline::parser();
 
-//   parser->add<std::string>("node_name", 'n', node_name_help, false);
+  parser->add<std::string>("config-file", 'c', "GraspIt script config file.", false, "./graspit_script_config.ini");
   parser->parse(argc, argv);
-
+  std::string config_file = parser->get<std::string>("config-file");
+  mRequest.fromConfigFile(config_file);
+  
   firstTimeInMainLoop = true;
 
   mPlanner = NULL;
@@ -59,8 +74,8 @@ int GraspitInterface::mainLoop() {
   if (!mPlanner->isActive()) {
     processPlannerResultsInMainThread();
     if (graspitCore->getMainWindow() == NULL) {
-        // headless
-        graspitCore->exitMainLoop();
+      // headless
+      graspitCore->exitMainLoop();
     }
     std::cout << "DONE" << std::endl;
     return -1;
@@ -604,7 +619,8 @@ void GraspitInterface::buildFeedbackInMainThread() {
 */
 
 void GraspitInterface::runPlannerInMainThread() {
-  std::cout << "Planner Starting in Mainloop" << std::endl;
+  if (mRequest.verbose)
+    std::cout << "Planner Starting in Mainloop" << std::endl;
   Hand *mHand = graspitCore->getWorld()->getCurrentHand();
   if (mHand == NULL) {
     std::cout << "Planning Hand is NULL" << std::endl;
@@ -614,7 +630,8 @@ void GraspitInterface::runPlannerInMainThread() {
     std::cout << "Planning Object is NULL" << std::endl;
   }
 
-  std::cout << "Initing mHandObjectState" << std::endl;
+  if (mRequest.verbose)
+    std::cout << "Initing mHandObjectState" << std::endl;
   mHandObjectState = new GraspPlanningState(mHand);
   mHandObjectState->setObject(mObject);
 
@@ -637,14 +654,16 @@ void GraspitInterface::runPlannerInMainThread() {
     break;
 
   default:
-    std::cout << "Invalid Search Space Type" << std::endl;
+    std::cerr << "Invalid Search Space Type" << std::endl;
     return;
   }
 
-  std::cout << "Initing mHandObjectState" << std::endl;
+  if (mRequest.verbose)
+    std::cout << "Initing mHandObjectState" << std::endl;
   mHandObjectState->reset();
 
-  std::cout << "Initing mPlanner" << std::endl;
+  if (mRequest.verbose)
+    std::cout << "Initing mPlanner" << std::endl;
 
   switch (mRequest.planner) {
   case PLANNER_SIM_ANN:
@@ -695,53 +714,84 @@ void GraspitInterface::runPlannerInMainThread() {
     return;
   }
 
-  std::cout << "Setting Planner Model State" << std::endl;
+  if (mRequest.verbose)
+    std::cout << "Setting Planner Model State" << std::endl;
   mPlanner->setModelState(mHandObjectState);
   int max_steps = mRequest.max_steps;
   if (max_steps == 0) {
     max_steps = 70000;
   }
-  std::cout << "Setting Planner Max Steps " << max_steps << std::endl;
+  if (mRequest.verbose)
+    std::cout << "Setting Planner Max Steps " << max_steps << std::endl;
   mPlanner->setMaxSteps(max_steps);
 
   mPlanner->setBestListSizeParam(mRequest.max_num_results);
 
-  std::cout << "resetting Planner" << std::endl;
+  if (mRequest.verbose)
+    std::cout << "resetting Planner" << std::endl;
   mPlanner->resetPlanner();
 
-  std::cout << "Starting Planner" << std::endl;
+  if (mRequest.verbose)
+    std::cout << "Starting Planner" << std::endl;
   mPlanner->startPlanner();
 }
 
 void GraspitInterface::graspPlanningStateToCout(const GraspPlanningState *gps,
-                                                  Hand *mHand,
-                                                  GraspableBody *mObject) {
+                                                Hand *mHand,
+                                                GraspableBody *mObject) {
   gps->execute(mHand);
-//   mHand->autoGrasp(false, 1.0, false);
-  
+  //   mHand->autoGrasp(false, 1.0, false);
+
   // Position of the object in the hand frame.
   transf t = mHand->getTran().inverse() % mObject->getTran();
   vec3 approachInHand = mHand->getApproachTran() * vec3(0, 0, 1);
   approachInHand.normalize();
-  Eigen::VectorXd dof (mHand->getNumDOF());
+  Eigen::VectorXd dof(mHand->getNumDOF());
   mHand->getDOFVals(dof.data());
 
   // This SEGV.
-//   mHand->getGrasp()->update();
-//   QualVolume mVolQual(mHand->getGrasp(), ("Volume"), "L1 Norm");
-//   QualEpsilon mEpsQual(mHand->getGrasp(), ("Epsilon"), "L1 Norm");
+  //   mHand->getGrasp()->update();
+  //   QualVolume mVolQual(mHand->getGrasp(), ("Volume"), "L1 Norm");
+  //   QualEpsilon mEpsQual(mHand->getGrasp(), ("Epsilon"), "L1 Norm");
 
-//   graspitCore->getWorld()->findAllContacts();
-//   graspitCore->getWorld()->updateGrasps();
+  //   graspitCore->getWorld()->findAllContacts();
+  //   graspitCore->getWorld()->updateGrasps();
 
-  std::cout <<
-  "T: " << t.translation().transpose() / 1000.0 << "\n"
-  "R: " << t.rotation().coeffs().transpose() << "\n"
-  "approach: " << approachInHand.transpose() << "\n"
-  "dof: " << dof.transpose() << "\n"
-//   "epsilon_quality" << mEpsQual.evaluate() << "\n"
-//   "volume_quality" << mVolQual.evaluate() << "\n"
-  ;
+  std::cout << "T: " << t.translation().transpose() / 1000.0
+            << "\n"
+               "R: "
+            << t.rotation().coeffs().transpose()
+            << "\n"
+               "approach: "
+            << approachInHand.transpose()
+            << "\n"
+               "dof: "
+            << dof.transpose() << "\n"
+      //   "epsilon_quality" << mEpsQual.evaluate() << "\n"
+      //   "volume_quality" << mVolQual.evaluate() << "\n"
+      ;
+}
+
+void GraspitInterface::graspPlanningStateToCsv(const GraspPlanningState *gps,
+                                               Hand *mHand,
+                                               GraspableBody *mObject,
+                                               std::ostream &out) {
+  gps->execute(mHand);
+  //   mHand->autoGrasp(false, 1.0, false);
+
+  // Position of the object in the hand frame.
+  transf t = mHand->getTran().inverse() % mObject->getTran();
+  vec3 approachInHand = mHand->getApproachTran() * vec3(0, 0, 1);
+  approachInHand.normalize();
+  Eigen::VectorXd dof(mHand->getNumDOF());
+  mHand->getDOFVals(dof.data());
+
+  static const Eigen::IOFormat CsvFmt(
+      Eigen::StreamPrecision, Eigen::DontAlignCols, ", ", ", ", "", "", "", "");
+
+  out << (t.translation() / 1000.0).format(CsvFmt) << ", "
+      << t.rotation().coeffs().format(CsvFmt) << ", "
+      << approachInHand.format(CsvFmt) << '\n';
 }
 
 void GraspitInterface::processPlannerResultsInMainThread() {
@@ -754,12 +804,19 @@ void GraspitInterface::processPlannerResultsInMainThread() {
     std::cout << "Planning Object is NULL" << std::endl;
   }
 
+  std::ofstream csv_file(mRequest.output_file);
+  // CSV header
+  csv_file << "tx, ty, tz, qx, qy, qz, qw, ax, ay, az\n";
 
-  std::cout << "Publishing Result" << std::endl;
+  if (mRequest.verbose)
+    std::cout << "Publishing Result" << std::endl;
   for (int i = 0; i < mPlanner->getListSize(); i++) {
     const GraspPlanningState *gps = mPlanner->getGrasp(i);
-    std::cout << "Grasp " << i << '\n';
-    graspPlanningStateToCout(gps, mHand, mObject);
+    if (mRequest.verbose) {
+      std::cout << "Grasp " << i << '\n';
+      graspPlanningStateToCout(gps, mHand, mObject);
+    }
+    graspPlanningStateToCsv(gps, mHand, mObject, csv_file);
   }
 
   if (mPlanner->getListSize() > 0) {
