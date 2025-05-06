@@ -740,7 +740,7 @@ void GraspitInterface::graspPlanningStateToCout(const GraspPlanningState *gps,
                                                 Hand *mHand,
                                                 GraspableBody *mObject) {
   gps->execute(mHand);
-  //   mHand->autoGrasp(false, 1.0, false);
+  mHand->autoGrasp(false, 1.0, false);
 
   // Position of the object in the hand frame.
   transf t = mHand->getTran().inverse() % mObject->getTran();
@@ -749,10 +749,9 @@ void GraspitInterface::graspPlanningStateToCout(const GraspPlanningState *gps,
   Eigen::VectorXd dof(mHand->getNumDOF());
   mHand->getDOFVals(dof.data());
 
-  // This SEGV.
-  //   mHand->getGrasp()->update();
-  //   QualVolume mVolQual(mHand->getGrasp(), ("Volume"), "L1 Norm");
-  //   QualEpsilon mEpsQual(mHand->getGrasp(), ("Epsilon"), "L1 Norm");
+  mHand->getGrasp()->update();
+  QualVolume mVolQual(mHand->getGrasp(), ("Volume"), "L1 Norm");
+  QualEpsilon mEpsQual(mHand->getGrasp(), ("Epsilon"), "L1 Norm");
 
   //   graspitCore->getWorld()->findAllContacts();
   //   graspitCore->getWorld()->updateGrasps();
@@ -763,12 +762,15 @@ void GraspitInterface::graspPlanningStateToCout(const GraspPlanningState *gps,
             << t.rotation().coeffs().transpose()
             << "\n"
                "approach: "
-            << approachInHand.transpose()
+            // << approachInHand.transpose()
+            << mHand->getApproachTran()
+            << '\n'
+            << gps->getDistance()
             << "\n"
                "dof: "
             << dof.transpose() << "\n"
-      //   "epsilon_quality" << mEpsQual.evaluate() << "\n"
-      //   "volume_quality" << mVolQual.evaluate() << "\n"
+        "epsilon_quality" << mEpsQual.evaluate() << "\n"
+        "volume_quality" << mVolQual.evaluate() << "\n"
       ;
 }
 
@@ -777,12 +779,12 @@ void GraspitInterface::graspPlanningStateToCsv(const GraspPlanningState *gps,
                                                GraspableBody *mObject,
                                                std::ostream &out) {
   gps->execute(mHand);
-  //   mHand->autoGrasp(false, 1.0, false);
+  mHand->autoGrasp(false, 1.0, true);
 
   // Position of the object in the hand frame.
-  transf t = mHand->getTran().inverse() % mObject->getTran();
+  transf t = mObject->getTran().inverse() % mHand->getTran(); // % mHand->getApproachTran();
   vec3 approachInHand = mHand->getApproachTran() * vec3(0, 0, 1);
-  approachInHand.normalize();
+  // approachInHand.normalize();
   Eigen::VectorXd dof(mHand->getNumDOF());
   mHand->getDOFVals(dof.data());
 
